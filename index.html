@@ -6,6 +6,13 @@
     <title>SecureBank</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary-bg: #1e3c72;
+            --secondary-bg: #2a5298;
+            --card-bg: rgba(255, 255, 255, 0.1);
+            --text-color: white;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -14,10 +21,11 @@
         }
 
         body {
-            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            background: linear-gradient(135deg, var(--primary-bg), var(--secondary-bg));
             min-height: 100vh;
             padding: 20px;
-            color: white;
+            color: var(--text-color);
+            transition: 0.3s;
         }
 
         .container {
@@ -26,12 +34,21 @@
         }
 
         .bank-card {
-            background: rgba(255, 255, 255, 0.1);
+            background: var(--card-bg);
             backdrop-filter: blur(10px);
             border-radius: 15px;
             padding: 30px;
             margin-bottom: 30px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .account-number {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 14px;
+            opacity: 0.8;
         }
 
         .balance {
@@ -129,7 +146,6 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Добавленные стили для кнопок */
         .modal-buttons {
             display: flex;
             gap: 10px;
@@ -146,15 +162,53 @@
             flex: 1;
         }
 
-        .modal-content h2 {
-            margin-bottom: 20px;
-            text-align: center;
+        .warning {
+            background: #ffeb3b;
+            color: #333;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
         }
+
+        .settings-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--card-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .theme-selector {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .theme-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+        }
+
+        .theme-default { background: linear-gradient(135deg, #1e3c72, #2a5298); }
+        .theme-light { background: linear-gradient(135deg, #ece9e6, #ffffff); }
+        .theme-dark { background: linear-gradient(135deg, #232526, #414345); }
+        .theme-green { background: linear-gradient(135deg, #11998e, #38ef7d); }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="bank-card">
+            <div class="account-number" id="accountNumber"></div>
             <div class="balance">₽<span id="balance">0</span></div>
             
             <div class="buttons">
@@ -168,6 +222,10 @@
                     <i class="fas fa-coins"></i> Пополнить
                 </button>
             </div>
+
+            <div class="settings-btn" onclick="showModal('settings')">
+                <i class="fas fa-cog"></i>
+            </div>
         </div>
 
         <div class="transactions">
@@ -180,7 +238,8 @@
     <div id="payModal" class="modal">
         <div class="modal-content">
             <h2>Оплата</h2>
-            <input type="number" id="payAmount" placeholder="Сумма">
+            <input type="number" id="payAmount" placeholder="Сумма (мин. 0.1₽)" step="0.1" min="0.1">
+            <input type="text" id="storeId" placeholder="ID магазина">
             <div class="modal-buttons">
                 <button class="confirm-btn" onclick="processPayment()">Подтвердить</button>
                 <button class="cancel-btn" onclick="closeModals()">Отмена</button>
@@ -191,8 +250,11 @@
     <div id="transferModal" class="modal">
         <div class="modal-content">
             <h2>Перевод</h2>
-            <input type="number" id="transferAmount" placeholder="Сумма">
-            <input type="text" id="transferAccount" placeholder="Номер счета">
+            <div class="warning">
+                ⚠️ Переводы возможны только внутри банка!
+            </div>
+            <input type="number" id="transferAmount" placeholder="Сумма (мин. 0.1₽)" step="0.1" min="0.1">
+            <input type="text" id="transferAccount" placeholder="Номер счета получателя">
             <div class="modal-buttons">
                 <button class="confirm-btn" onclick="processTransfer()">Подтвердить</button>
                 <button class="cancel-btn" onclick="closeModals()">Отмена</button>
@@ -203,10 +265,33 @@
     <div id="depositModal" class="modal">
         <div class="modal-content">
             <h2>Пополнение</h2>
-            <input type="number" id="depositAmount" placeholder="Сумма">
+            <input type="number" id="depositAmount" placeholder="Сумма (мин. 0.1₽)" step="0.1" min="0.1">
             <input type="password" id="adminPassword" placeholder="Пароль создателя">
             <div class="modal-buttons">
                 <button class="confirm-btn" onclick="processDeposit()">Подтвердить</button>
+                <button class="cancel-btn" onclick="closeModals()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <h2>Настройки</h2>
+            <div class="form-group">
+                <label>Номер счёта:</label>
+                <input type="text" id="userAccountNumber" placeholder="Введите номер счёта">
+            </div>
+            <div class="form-group">
+                <label>Выберите тему:</label>
+                <div class="theme-selector">
+                    <div class="theme-option theme-default" onclick="changeTheme('default')"></div>
+                    <div class="theme-option theme-light" onclick="changeTheme('light')"></div>
+                    <div class="theme-option theme-dark" onclick="changeTheme('dark')"></div>
+                    <div class="theme-option theme-green" onclick="changeTheme('green')"></div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="confirm-btn" onclick="saveSettings()">Сохранить</button>
                 <button class="cancel-btn" onclick="closeModals()">Отмена</button>
             </div>
         </div>
@@ -217,6 +302,10 @@
     <script>
         let balance = localStorage.getItem('balance') || 0;
         let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+        let settings = JSON.parse(localStorage.getItem('settings')) || {
+            theme: 'default',
+            accountNumber: ''
+        };
 
         function updateBalance() {
             document.getElementById('balance').textContent = balance;
@@ -229,7 +318,7 @@
             list.innerHTML = transactions.map(transaction => `
                 <div class="transaction-item">
                     <span>${transaction.description}</span>
-                    <span>${transaction.amount > 0 ? '+' : ''}${transaction.amount}₽</span>
+                    <span>${transaction.amount > 0 ? '+' : ''}${transaction.amount.toFixed(1)}₽</span>
                 </div>
             `).join('');
             localStorage.setItem('transactions', JSON.stringify(transactions));
@@ -253,36 +342,53 @@
 
         function processPayment() {
             const amount = parseFloat(document.getElementById('payAmount').value);
-            if (amount <= 0 || isNaN(amount)) {
-                showNotification('Введите корректную сумму!', true);
+            const storeId = document.getElementById('storeId').value;
+            
+            if (!storeId) {
+                showNotification('Введите ID магазина!', true);
                 return;
             }
+            
+            if (amount < 0.1 || isNaN(amount)) {
+                showNotification('Минимальная сумма 0.1₽!', true);
+                return;
+            }
+
             if (balance - amount < 0) {
                 showNotification('Недостаточно средств!', true);
                 return;
             }
+
             balance -= amount;
             transactions.push({
                 amount: -amount,
-                description: `Оплата на сумму ${amount}₽`,
+                description: `Оплата в магазине #${storeId}`,
                 date: new Date().toISOString()
             });
             updateBalance();
             closeModals();
-            showNotification(`Оплачено ${amount}₽`);
+            showNotification(`Оплачено ${amount.toFixed(1)}₽`);
         }
 
         function processTransfer() {
             const amount = parseFloat(document.getElementById('transferAmount').value);
             const account = document.getElementById('transferAccount').value;
-            if (!account || amount <= 0 || isNaN(amount)) {
-                showNotification('Заполните все поля корректно!', true);
+            
+            if (!account) {
+                showNotification('Введите номер счета!', true);
                 return;
             }
+            
+            if (amount < 0.1 || isNaN(amount)) {
+                showNotification('Минимальная сумма 0.1₽!', true);
+                return;
+            }
+
             if (balance - amount < 0) {
                 showNotification('Недостаточно средств!', true);
                 return;
             }
+
             balance -= amount;
             transactions.push({
                 amount: -amount,
@@ -291,7 +397,7 @@
             });
             updateBalance();
             closeModals();
-            showNotification(`Переведено ${amount}₽ на счет ${account}`);
+            showNotification(`Переведено ${amount.toFixed(1)}₽`);
         }
 
         function processDeposit() {
@@ -299,14 +405,15 @@
             const password = document.getElementById('adminPassword').value;
             
             if (password !== 'A9XX') {
-                showNotification('Неверный пароль создателя!', true);
-                return;
-            }
-            if (amount <= 0 || isNaN(amount)) {
-                showNotification('Введите корректную сумму!', true);
+                showNotification('Неверный пароль!', true);
                 return;
             }
             
+            if (amount < 0.1 || isNaN(amount)) {
+                showNotification('Минимальная сумма 0.1₽!', true);
+                return;
+            }
+
             balance = parseFloat(balance) + amount;
             transactions.push({
                 amount: +amount,
@@ -315,17 +422,62 @@
             });
             updateBalance();
             closeModals();
-            showNotification(`Счет пополнен на ${amount}₽`);
+            showNotification(`Пополнено на ${amount.toFixed(1)}₽`);
         }
 
-        // Инициализация
+        function changeTheme(themeName, save = true) {
+            const root = document.documentElement;
+            switch(themeName) {
+                case 'light':
+                    root.style.setProperty('--primary-bg', '#ece9e6');
+                    root.style.setProperty('--secondary-bg', '#ffffff');
+                    root.style.setProperty('--text-color', '#333');
+                    root.style.setProperty('--card-bg', 'rgba(0, 0, 0, 0.1)');
+                    break;
+                case 'dark':
+                    root.style.setProperty('--primary-bg', '#232526');
+                    root.style.setProperty('--secondary-bg', '#414345');
+                    root.style.setProperty('--text-color', '#fff');
+                    root.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.1)');
+                    break;
+                case 'green':
+                    root.style.setProperty('--primary-bg', '#11998e');
+                    root.style.setProperty('--secondary-bg', '#38ef7d');
+                    root.style.setProperty('--text-color', '#fff');
+                    root.style.setProperty('--card-bg', 'rgba(0, 0, 0, 0.2)');
+                    break;
+                default:
+                    root.style.setProperty('--primary-bg', '#1e3c72');
+                    root.style.setProperty('--secondary-bg', '#2a5298');
+                    root.style.setProperty('--text-color', '#fff');
+                    root.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.1)');
+            }
+            if(save) {
+                settings.theme = themeName;
+                localStorage.setItem('settings', JSON.stringify(settings));
+            }
+        }
+
+        function saveSettings() {
+            settings.accountNumber = document.getElementById('userAccountNumber').value;
+            localStorage.setItem('settings', JSON.stringify(settings));
+            document.getElementById('accountNumber').textContent = settings.accountNumber;
+            showNotification('Настройки сохранены');
+            closeModals();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            changeTheme(settings.theme, false);
+            document.getElementById('accountNumber').textContent = settings.accountNumber;
+            document.getElementById('userAccountNumber').value = settings.accountNumber;
+            updateBalance();
+        });
+
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', e => {
                 if (e.target === modal) closeModals();
             });
         });
-
-        updateBalance();
     </script>
 </body>
 </html>
