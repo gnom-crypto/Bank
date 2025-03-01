@@ -448,6 +448,11 @@
             closeModals();
             showNotification(`Оплачено ${amount.toFixed(1)}₽`);
         }
+
+        function processTransfer() {
+            const amount = parseFloat(document.getElementById('transferAmount').value);
+            const account = document.getElementById('transferAccount').value;
+            const comment = prompt("Добавьте комментарий (не обязательно):") || '';
             
             if (!account) {
                 showNotification('Введите номер счета!', true);
@@ -475,6 +480,11 @@
             closeModals();
             showNotification(`Переведено ${amount.toFixed(1)}₽`);
         }
+
+        function processDeposit() {
+            const amount = parseFloat(document.getElementById('depositAmount').value);
+            const password = document.getElementById('adminPassword').value;
+            const comment = prompt("Добавьте комментарий (не обязательно):") || '';
             
             if (password !== 'A9XX') {
                 showNotification('Неверный пароль!', true);
@@ -511,6 +521,8 @@
                     root.style.setProperty('--primary-bg', '#232526');
                     root.style.setProperty('--secondary-bg', '#414345');
                     root.style.setProperty('--text-color', '#fff');
+                    root.style.setProperty('--card-bg', 'rgba(0, 0, 0, 0)');
+                    break
                 case 'green':
                     root.style.setProperty('--primary-bg', '#11998e');
                     root.style.setProperty('--secondary-bg', '#38ef7d');
