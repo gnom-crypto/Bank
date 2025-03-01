@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureBank</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .bank-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .balance {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            color: #333;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 10px;
+            background: #4CAF50;
+            color: white;
+            display: none;
+            animation: slideIn 0.5s;
+        }
+
+        .error {
+            background: #f44336;
+        }
+
+        @keyframes slideIn {
+            from { right: -300px; }
+            to { right: 20px; }
+        }
+
+        .transactions {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+        }
+
+        .transaction-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="bank-card">
+            <div class="balance">₽<span id="balance">0</span></div>
+            
+            <div class="buttons">
+                <button onclick="showModal('pay')">
+                    <i class="fas fa-credit-card"></i> Оплатить
+                </button>
+                <button onclick="showModal('transfer')">
+                    <i class="fas fa-exchange-alt"></i> Перевести
+                </button>
+                <button onclick="showModal('deposit')">
+                    <i class="fas fa-coins"></i> Пополнить
+                </button>
+            </div>
+        </div>
+
+        <div class="transactions">
+            <h3>История операций</h3>
+            <div id="transactions-list"></div>
+        </div>
+    </div>
+
+    <!-- Модальные окна -->
+    <div id="payModal" class="modal">
+        <div class="modal-content">
+            <h2>Оплата</h2>
+            <input type="number" id="payAmount" placeholder="Сумма">
+            <button onclick="processPayment()">Оплатить</button>
+        </div>
+    </div>
+
+    <div id="transferModal" class="modal">
+        <div class="modal-content">
+            <h2>Перевод</h2>
+            <input type="number" id="transferAmount" placeholder="Сумма">
+            <input type="text" id="transferAccount" placeholder="Номер счета">
+            <button onclick="processTransfer()">Перевести</button>
+        </div>
+    </div>
+
+    <div id="depositModal" class="modal">
+        <div class="modal-content">
+            <h2>Пополнение</h2>
+            <input type="number" id="depositAmount" placeholder="Сумма">
+            <input type="password" id="adminPassword" placeholder="Пароль создателя">
+            <button onclick="processDeposit()">Пополнить</button>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        let balance = localStorage.getItem('balance') || 0;
+        let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+
+        function updateBalance() {
+            document.getElementById('balance').textContent = balance;
+            localStorage.setItem('balance', balance);
+            updateTransactions();
+        }
+
+        function updateTransactions() {
+            const list = document.getElementById('transactions-list');
+            list.innerHTML = transactions.map(transaction => `
+                <div class="transaction-item">
+                    <span>${transaction.description}</span>
+                    <span>${transaction.amount > 0 ? '+' : ''}${transaction.amount}₽</span>
+                </div>
+            `).join('');
+            localStorage.setItem('transactions', JSON.stringify(transactions));
+        }
+
+        function showNotification(message, isError = false) {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.className = `notification ${isError ? 'error' : ''}`;
+            notif.style.display = 'block';
+            setTimeout(() => notif.style.display = 'none', 3000);
+        }
+
+        function showModal(type) {
+            document.getElementById(`${type}Modal`).style.display = 'flex';
+        }
+
+        function closeModals() {
+            document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
+        }
+
+        // Обработчики операций
+        function processPayment() {
+            const amount = parseFloat(document.getElementById('payAmount').value);
+            if (amount <= 0 || isNaN(amount)) {
+                showNotification('Введите корректную сумму!', true);
+                return;
+            }
+            if (balance - amount < 0) {
+                showNotification('Недостаточно средств!', true);
+                return;
+            }
+            balance -= amount;
+            transactions.push({
+                amount: -amount,
+                description: `Оплата на сумму ${amount}₽`,
+                date: new Date().toISOString()
+            });
+            updateBalance();
+            closeModals();
+            showNotification(`Оплачено ${amount}₽`);
+        }
+
+        function processTransfer() {
+            const amount = parseFloat(document.getElementById('transferAmount').value);
+            const account = document.getElementById('transferAccount').value;
+            if (!account || amount <= 0 || isNaN(amount)) {
+                showNotification('Заполните все поля корректно!', true);
+                return;
+            }
+            if (balance - amount < 0) {
+                showNotification('Недостаточно средств!', true);
+                return;
+            }
+            balance -= amount;
+            transactions.push({
+                amount: -amount,
+                description: `Перевод на счет ${account}`,
+                date: new Date().toISOString()
+            });
+            updateBalance();
+            closeModals();
+            showNotification(`Переведено ${amount}₽ на счет ${account}`);
+        }
+
+        function processDeposit() {
+            const amount = parseFloat(document.getElementById('depositAmount').value);
+            const password = document.getElementById('adminPassword').value;
+            
+            if (password !== 'A9XX') {
+                showNotification('Неверный пароль создателя!', true);
+                return;
+            }
+            if (amount <= 0 || isNaN(amount)) {
+                showNotification('Введите корректную сумму!', true);
+                return;
+            }
+            
+            balance = parseFloat(balance) + amount;
+            transactions.push({
+                amount: +amount,
+                description: `Пополнение счета`,
+                date: new Date().toISOString()
+            });
+            updateBalance();
+            closeModals();
+            showNotification(`Счет пополнен на ${amount}₽`);
+        }
+
+        // Инициализация
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', e => {
+                if (e.target === modal) closeModals();
+            });
+        });
+
+        updateBalance();
+    </script>
+</body>
+</html>
