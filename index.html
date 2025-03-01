@@ -214,6 +214,32 @@
             background: #f44336 !important;
             width: 100%;
         }
+
+        .comment-bubble {
+            background: #f0f0f0;
+            padding: 8px;
+            border-radius: 8px;
+            margin-top: 5px;
+            color: #333;
+            font-size: 0.9em;
+        }
+
+        .receipt-modal {
+            max-width: 500px;
+        }
+
+        .receipt-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            color: #333;
+        }
+
+        .receipt-item {
+            margin: 10px 0;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
     </style>
 </head>
 <body>
@@ -289,7 +315,7 @@
             <h2>Настройки</h2>
             <div class="form-group">
                 <label>Номер счёта:</label>
-                <input type="text" id="userAccountNumber" placeholder="Введите номер счёта">
+                <input type="text" id="userAccountNumber" placeholder="Автоматически сгенерирован" disabled>
             </div>
             <div class="form-group">
                 <label>Выберите тему:</label>
@@ -303,7 +329,7 @@
             <div class="danger-zone">
                 <h3>Другие настройки</h3>
                 <button class="reset-btn" onclick="resetAccount()">
-                    <i class="fas fa-exclamation-triangle"></i> Обнулить аккаунт
+                    <i class="fas fa-exclamation-triangle"></i> Сбросить аккаунт
                 </button>
             </div>
             <div class="modal-buttons">
@@ -316,11 +342,18 @@
     <div id="resetConfirmModal" class="modal">
         <div class="modal-content">
             <h2>⚠️ Внимание!</h2>
-            <p>Вы уверены, что хотите полностью обнулить аккаунт? Все данные будут безвозвратно удалены!</p>
+            <p>Вы уверены, что хотите полностью сбросить аккаунт? Все данные будут удалены!</p>
             <div class="modal-buttons">
-                <button class="confirm-btn reset-btn" onclick="confirmReset()">Да, обнулить</button>
+                <button class="confirm-btn reset-btn" onclick="confirmReset()">Да, сбросить</button>
                 <button class="cancel-btn" onclick="closeModals()">Отмена</button>
             </div>
+        </div>
+    </div>
+
+    <div id="receiptModal" class="modal">
+        <div class="modal-content receipt-modal">
+            <div class="receipt-content" id="receiptContent"></div>
+            <button class="confirm-btn" onclick="closeModals()">Закрыть</button>
         </div>
     </div>
 
@@ -334,6 +367,14 @@
             accountNumber: ''
         };
 
+        function generateAccountNumber() {
+            if(!settings.accountNumber) {
+                const randomPart = Array.from({length: 12}, () => Math.floor(Math.random() * 10)).join('');
+                settings.accountNumber = `QU${randomPart}RmK`;
+                localStorage.setItem('settings', JSON.stringify(settings));
+            }
+        }
+
         function updateBalance() {
             document.getElementById('balance').textContent = balance;
             localStorage.setItem('balance', balance);
@@ -342,10 +383,19 @@
 
         function updateTransactions() {
             const list = document.getElementById('transactions-list');
-            list.innerHTML = transactions.map(transaction => `
+            list.innerHTML = transactions.map((transaction, index) => `
                 <div class="transaction-item">
-                    <span>${transaction.description}</span>
-                    <span>${transaction.amount > 0 ? '+' : ''}${transaction.amount.toFixed(1)}₽</span>
+                    <div>
+                        <div>${transaction.description}</div>
+                        ${transaction.comment ? `
+                        <div class="comment-bubble">${transaction.comment}</div>` : ''}
+                    </div>
+                    <div>
+                        <span>${transaction.amount > 0 ? '+' : ''}${transaction.amount.toFixed(1)}₽</span>
+                        <button onclick="showReceipt(${index})" style="margin-left: 10px;">
+                            <i class="fas fa-receipt"></i>
+                        </button>
+                    </div>
                 </div>
             `).join('');
             localStorage.setItem('transactions', JSON.stringify(transactions));
@@ -370,6 +420,7 @@
         function processPayment() {
             const amount = parseFloat(document.getElementById('payAmount').value);
             const storeId = document.getElementById('storeId').value;
+            const comment = prompt("Добавьте комментарий (не обязательно):") || '';
             
             if (!storeId) {
                 showNotification('Введите ID магазина!', true);
@@ -390,6 +441,7 @@
             transactions.push({
                 amount: -amount,
                 description: `Оплата в магазине #${storeId}`,
+                comment: comment,
                 date: new Date().toISOString()
             });
             updateBalance();
@@ -400,6 +452,7 @@
         function processTransfer() {
             const amount = parseFloat(document.getElementById('transferAmount').value);
             const account = document.getElementById('transferAccount').value;
+            const comment = prompt("Добавьте комментарий (не обязательно):") || '';
             
             if (!account) {
                 showNotification('Введите номер счета!', true);
@@ -420,6 +473,7 @@
             transactions.push({
                 amount: -amount,
                 description: `Перевод на счет ${account}`,
+                comment: comment,
                 date: new Date().toISOString()
             });
             updateBalance();
@@ -430,6 +484,7 @@
         function processDeposit() {
             const amount = parseFloat(document.getElementById('depositAmount').value);
             const password = document.getElementById('adminPassword').value;
+            const comment = prompt("Добавьте комментарий (не обязательно):") || '';
             
             if (password !== 'A9XX') {
                 showNotification('Неверный пароль!', true);
@@ -445,6 +500,7 @@
             transactions.push({
                 amount: +amount,
                 description: `Пополнение счета`,
+                comment: comment,
                 date: new Date().toISOString()
             });
             updateBalance();
@@ -465,8 +521,6 @@
                     root.style.setProperty('--primary-bg', '#232526');
                     root.style.setProperty('--secondary-bg', '#414345');
                     root.style.setProperty('--text-color', '#fff');
-                    root.style.setProperty('--card-bg', 'rgba(255, 255, 255, 0.1)');
-                    break;
                 case 'green':
                     root.style.setProperty('--primary-bg', '#11998e');
                     root.style.setProperty('--secondary-bg', '#38ef7d');
@@ -486,7 +540,6 @@
         }
 
         function saveSettings() {
-            settings.accountNumber = document.getElementById('userAccountNumber').value;
             localStorage.setItem('settings', JSON.stringify(settings));
             document.getElementById('accountNumber').textContent = settings.accountNumber;
             showNotification('Настройки сохранены');
@@ -502,7 +555,31 @@
             location.reload();
         }
 
+        function showReceipt(index) {
+            const transaction = transactions[index];
+            const html = `
+                <h2>Детали операции</h2>
+                <div class="receipt-item">
+                    <strong>Тип:</strong> ${transaction.amount > 0 ? 'Пополнение' : 'Списание'}
+                </div>
+                <div class="receipt-item">
+                    <strong>Сумма:</strong> ${Math.abs(transaction.amount).toFixed(1)}₽
+                </div>
+                <div class="receipt-item">
+                    <strong>Дата:</strong> ${new Date(transaction.date).toLocaleString()}
+                </div>
+                ${transaction.comment ? `
+                <div class="receipt-item">
+                    <strong>Комментарий:</strong>
+                    <div class="comment-bubble">${transaction.comment}</div>
+                </div>` : ''}
+            `;
+            document.getElementById('receiptContent').innerHTML = html;
+            showModal('receipt');
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
+            generateAccountNumber();
             changeTheme(settings.theme, false);
             document.getElementById('accountNumber').textContent = settings.accountNumber;
             document.getElementById('userAccountNumber').value = settings.accountNumber;
