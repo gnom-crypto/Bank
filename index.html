@@ -448,11 +448,6 @@
             closeModals();
             showNotification(`Оплачено ${amount.toFixed(1)}₽`);
         }
-
-        function processTransfer() {
-            const amount = parseFloat(document.getElementById('transferAmount').value);
-            const account = document.getElementById('transferAccount').value;
-            const comment = prompt("Добавьте комментарий (не обязательно):") || '';
             
             if (!account) {
                 showNotification('Введите номер счета!', true);
@@ -480,11 +475,6 @@
             closeModals();
             showNotification(`Переведено ${amount.toFixed(1)}₽`);
         }
-
-        function processDeposit() {
-            const amount = parseFloat(document.getElementById('depositAmount').value);
-            const password = document.getElementById('adminPassword').value;
-            const comment = prompt("Добавьте комментарий (не обязательно):") || '';
             
             if (password !== 'A9XX') {
                 showNotification('Неверный пароль!', true);
