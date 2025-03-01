@@ -46,7 +46,7 @@
         .account-number {
             position: absolute;
             top: 15px;
-            right: 15px;
+            right: 70px;
             font-size: 14px;
             opacity: 0.8;
         }
@@ -172,11 +172,11 @@
         }
 
         .settings-btn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             background: var(--card-bg);
             display: flex;
@@ -203,12 +203,26 @@
         .theme-light { background: linear-gradient(135deg, #ece9e6, #ffffff); }
         .theme-dark { background: linear-gradient(135deg, #232526, #414345); }
         .theme-green { background: linear-gradient(135deg, #11998e, #38ef7d); }
+
+        .danger-zone {
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+        }
+
+        .reset-btn {
+            background: #f44336 !important;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="bank-card">
             <div class="account-number" id="accountNumber"></div>
+            <div class="settings-btn" onclick="showModal('settings')">
+                <i class="fas fa-cog"></i>
+            </div>
             <div class="balance">₽<span id="balance">0</span></div>
             
             <div class="buttons">
@@ -221,10 +235,6 @@
                 <button onclick="showModal('deposit')">
                     <i class="fas fa-coins"></i> Пополнить
                 </button>
-            </div>
-
-            <div class="settings-btn" onclick="showModal('settings')">
-                <i class="fas fa-cog"></i>
             </div>
         </div>
 
@@ -290,8 +300,25 @@
                     <div class="theme-option theme-green" onclick="changeTheme('green')"></div>
                 </div>
             </div>
+            <div class="danger-zone">
+                <h3>Опасная зона</h3>
+                <button class="reset-btn" onclick="resetAccount()">
+                    <i class="fas fa-exclamation-triangle"></i> Обнулить аккаунт
+                </button>
+            </div>
             <div class="modal-buttons">
                 <button class="confirm-btn" onclick="saveSettings()">Сохранить</button>
+                <button class="cancel-btn" onclick="closeModals()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="resetConfirmModal" class="modal">
+        <div class="modal-content">
+            <h2>⚠️ Внимание!</h2>
+            <p>Вы уверены, что хотите полностью обнулить аккаунт? Все данные будут безвозвратно удалены!</p>
+            <div class="modal-buttons">
+                <button class="confirm-btn reset-btn" onclick="confirmReset()">Да, обнулить</button>
                 <button class="cancel-btn" onclick="closeModals()">Отмена</button>
             </div>
         </div>
@@ -464,6 +491,15 @@
             document.getElementById('accountNumber').textContent = settings.accountNumber;
             showNotification('Настройки сохранены');
             closeModals();
+        }
+
+        function resetAccount() {
+            showModal('resetConfirm');
+        }
+
+        function confirmReset() {
+            localStorage.clear();
+            location.reload();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
