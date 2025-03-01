@@ -128,6 +128,28 @@
             padding: 10px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
+
+        /* Добавленные стили для кнопок */
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .confirm-btn {
+            background: #4CAF50 !important;
+            flex: 1;
+        }
+
+        .cancel-btn {
+            background: #f44336 !important;
+            flex: 1;
+        }
+
+        .modal-content h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -159,7 +181,10 @@
         <div class="modal-content">
             <h2>Оплата</h2>
             <input type="number" id="payAmount" placeholder="Сумма">
-            <button onclick="processPayment()">Оплатить</button>
+            <div class="modal-buttons">
+                <button class="confirm-btn" onclick="processPayment()">Подтвердить</button>
+                <button class="cancel-btn" onclick="closeModals()">Отмена</button>
+            </div>
         </div>
     </div>
 
@@ -168,7 +193,10 @@
             <h2>Перевод</h2>
             <input type="number" id="transferAmount" placeholder="Сумма">
             <input type="text" id="transferAccount" placeholder="Номер счета">
-            <button onclick="processTransfer()">Перевести</button>
+            <div class="modal-buttons">
+                <button class="confirm-btn" onclick="processTransfer()">Подтвердить</button>
+                <button class="cancel-btn" onclick="closeModals()">Отмена</button>
+            </div>
         </div>
     </div>
 
@@ -177,7 +205,10 @@
             <h2>Пополнение</h2>
             <input type="number" id="depositAmount" placeholder="Сумма">
             <input type="password" id="adminPassword" placeholder="Пароль создателя">
-            <button onclick="processDeposit()">Пополнить</button>
+            <div class="modal-buttons">
+                <button class="confirm-btn" onclick="processDeposit()">Подтвердить</button>
+                <button class="cancel-btn" onclick="closeModals()">Отмена</button>
+            </div>
         </div>
     </div>
 
@@ -220,7 +251,6 @@
             document.querySelectorAll('.modal').forEach(modal => modal.style.display = 'none');
         }
 
-        // Обработчики операций
         function processPayment() {
             const amount = parseFloat(document.getElementById('payAmount').value);
             if (amount <= 0 || isNaN(amount)) {
